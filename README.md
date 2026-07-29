@@ -23,25 +23,37 @@ The system performs the following tasks:
 # 🏗️ System Architecture
 
 ```
-Video Camera
-      │
-      ▼
-YOLO Object Detection
-      │
-      ▼
+Classroom Videos
+        │
+        ▼
+Extract Images
+        │
+        ▼
+Label Studio
+(Image Annotation)
+        │
+        ▼
+Export YOLO Dataset
+        │
+        ▼
+Google Colab / Azure ML
+(YOLO Training)
+        │
+        ▼
+best.pt
+        │
+        ▼
+Edge AI System
+(Local Inference)
+        │
+        ▼
 Student Counting
-      │
-      ▼
+        │
+        ▼
 Occupancy Classification
-(Low / Medium / High)
-      │
-      ▼
-AC Controller
-      │
-      ▼
-Dashboard
-```
-
+        │
+        ▼
+AC Simulation + Dashboard
 ---
 
 # 🚀 Features
