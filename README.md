@@ -1,366 +1,262 @@
-# 🎓 Smart Classroom Edge AI System
+# Smart Classroom Edge AI Dashboard
 
-An AI-powered Smart Classroom system that detects classroom occupancy from classroom videos using **YOLO Object Detection**. Images are annotated using **Label Studio**, the model is trained in **Google Colab** or **Microsoft Azure Machine Learning**, and the trained model is deployed on an **Edge Device** for real-time occupancy detection and automatic AC control simulation.
+This project uses a trained YOLO11 ONNX model to detect and count people in a
+classroom video. A local FastAPI backend processes the video, applies protected
+AC-control rules, and sends live results to the React/Vite dashboard.
 
----
+## Occupancy and AC rules
 
-## 📖 Project Overview
+- `EMPTY` (0 people): AC OFF
+- `LOW` (1–2 people): AC OFF
+- `MEDIUM` (3–9 people): AC ON at 24°C
+- `HIGH` (10 or more people): AC ON at 20°C
 
-This project was developed for the **Edge Computing** course.
+To protect the AC from noisy detections and rapid switching, the controller
+confirms increasing occupancy for 15 seconds and decreasing occupancy for 60
+seconds. It also uses a five-minute minimum ON period, a 30-second restart
+delay, and a ten-minute temperature-change cooldown.
 
-The system automatically:
+## Requirements
 
-- 📹 Detects students from classroom videos
-- 👥 Counts the number of students
-- 📊 Classifies classroom occupancy
-- ❄️ Simulates automatic Air Conditioner (AC) control
-- 📈 Displays the current classroom status on a dashboard
-- 💻 Runs locally on an Edge Device
+- Windows 10 or 11 (for local development)
+- Python 3.10 or newer
+- Node.js 20.19+ or 22.12+
+- npm 10+
+- Docker Desktop (for the recommended container setup)
 
----
+## Project structure
 
-# 🏗️ System Workflow
-
-```
-Classroom Videos
-        │
-        ▼
-Extract Images
-        │
-        ▼
-Label Studio
-(Image Annotation)
-        │
-        ▼
-Export YOLO Dataset
-        │
-        ▼
-Google Colab / Azure ML
-(Model Training)
-        │
-        ▼
-YOLO Model (best.pt)
-        │
-        ▼
-Edge Device
-(Local Inference)
-        │
-        ▼
-Student Detection
-        │
-        ▼
-Student Counting
-        │
-        ▼
-Occupancy Classification
-        │
-        ▼
-Dashboard
-        │
-        ▼
-Automatic AC Control
+```text
+.
+|-- backend/
+|   |-- models/
+|   |-- Dockerfile
+|   |-- main.py
+|   `-- requirements.txt
+|-- frontend/
+|   |-- src/
+|   |-- Dockerfile
+|   |-- nginx.conf
+|   |-- package.json
+|   `-- vite.config.js
+|-- scripts/
+|   |-- run-backend.ps1
+|   `-- run-dashboard.ps1
+|-- docker-compose.yml
+`-- docs/
 ```
 
----
+## Run with Docker
 
-# 🚀 Features
+Docker Compose starts the React dashboard and FastAPI backend together:
 
-- Real-time Student Detection
-- Student Counting
-- Occupancy Classification
-- Low / Medium / High Occupancy Detection
-- Janitor Activity Detection
-- Automatic AC Simulation
-- Dashboard Monitoring
-- Cloud Model Training
-- Edge AI Deployment
-- Docker Support
-
----
-
-# 🏷️ Image Annotation
-
-The dataset was annotated using **Label Studio**.
-
-### Annotation Steps
-
-1. Record classroom videos.
-2. Extract images from videos.
-3. Upload images to Label Studio.
-4. Draw bounding boxes around each student.
-5. Export annotations in **YOLO** format.
-6. Create the training dataset.
-
----
-
-# ☁️ Cloud Training
-
-The YOLO model is trained using cloud computing.
-
-Supported platforms:
-
-- Google Colab
-- Microsoft Azure Machine Learning
-
-Training command:
-
-```bash
-yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
+```powershell
+docker compose up --build
 ```
 
-After training, the best model is exported as:
+Open:
 
-```
-best.pt
-```
+- Dashboard: `http://localhost:5173`
+- Backend health: `http://localhost:8010/health`
 
----
+Stop and remove the containers:
 
-# 💻 Edge Deployment
-
-The trained model runs locally on an Edge Device.
-
-Supported devices:
-
-- Windows PC
-- Ubuntu Linux
-- Raspberry Pi
-- NVIDIA Jetson Nano
-
-The system performs real-time inference without requiring an internet connection.
-
----
-
-# 📊 Occupancy Levels
-
-| Students | Occupancy |
-|----------|-----------|
-| 1–2 | Low |
-| 3–9 | Medium |
-| 10+ | High |
-
----
-
-# ❄️ AC Simulation
-
-| Occupancy | AC Status | Temperature |
-|-----------|-----------|-------------|
-| Low | OFF | -- |
-| Medium | ON | 24°C |
-| High | ON | 20°C |
-
----
-
-# 📁 Project Structure
-
-```
-Smart-Classroom-Edge-AI/
-│
-├── dataset/
-│   ├── train/
-│   ├── valid/
-│   ├── test/
-│   ├── videos/
-│   └── data.yaml
-│
-├── label-studio/
-│
-├── training/
-│   ├── train.py
-│   ├── detect.py
-│   └── evaluate.py
-│
-├── edge/
-│   ├── run_edge.py
-│   ├── occupancy.py
-│   └── ac_controller.py
-│
-├── dashboard/
-│   └── app.py
-│
-├── models/
-│   └── best.pt
-│
-├── screenshots/
-│
-├── docs/
-│
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
-└── README.md
+```powershell
+docker compose down
 ```
 
----
+Uploaded videos are kept in the named `backend-uploads` Docker volume.
 
-# 🛠️ Technologies Used
+> Camera access from Docker Desktop on Windows depends on the camera source and
+> host configuration. Video upload works without passing a webcam device into
+> the container. For direct webcam use, run the backend locally as described
+> below.
 
-## Programming
+## First-time setup
 
-- Python
+Open PowerShell in the project directory:
 
-## Computer Vision
-
-- YOLO11 (Ultralytics)
-- OpenCV
-
-## Annotation
-
-- Label Studio
-
-## Cloud Training
-
-- Google Colab
-- Microsoft Azure Machine Learning
-
-## Dashboard
-
-- Streamlit
-- Flask
-
-## Deployment
-
-- Docker
-
----
-
-# ⚙️ Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/your-username/Smart-Classroom-Edge-AI.git
+```powershell
+cd "path\to\smart-classroom-vite-dashboard"
 ```
 
-Move to the project directory:
+Create the isolated Python environment and install backend dependencies:
 
-```bash
-cd Smart-Classroom-Edge-AI
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 ```
 
-Install dependencies:
+Install dashboard dependencies:
 
-```bash
-pip install -r requirements.txt
+```powershell
+Set-Location frontend
+npm.cmd install
+Set-Location ..
 ```
 
----
+The trained model is already located at:
 
-# ▶️ Train the Model
-
-```bash
-python training/train.py
+```text
+backend\models\classroom_person.onnx
 ```
 
-or
+## Run the system
 
-```bash
-yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
+The backend and dashboard must run in two separate PowerShell terminals.
+
+### One-click Windows start
+
+Double-click:
+
+```text
+scripts\start-project.bat
 ```
 
----
+The launcher starts the backend and frontend in separate command windows and
+opens `http://localhost:5173` automatically. Close both command windows to stop
+the project.
 
-# ▶️ Run Detection
+### Terminal 1 — model backend
 
-Video
-
-```bash
-python training/detect.py
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8010
 ```
 
-Webcam
+Wait until the terminal displays:
 
-```python
-source = 0
+```text
+Application startup complete
+Uvicorn running on http://127.0.0.1:8010
 ```
 
-Image
+### Terminal 2 — dashboard
 
-```python
-source = "image.jpg"
+```powershell
+Set-Location frontend
+npm.cmd run dev -- --host 127.0.0.1
 ```
 
----
+Open the dashboard:
 
-# 📊 Dashboard
-
-The dashboard displays:
-
-- Student Count
-- Occupancy Level
-- AC Status
-- Temperature
-- Timestamp
-- AC Running Time
-
----
-
-# 🐳 Docker
-
-Build:
-
-```bash
-docker build -t smart-classroom .
+```text
+http://localhost:5173
 ```
 
-Run:
+You can confirm the backend is available at:
 
-```bash
-docker run smart-classroom
+```text
+http://localhost:8010/health
 ```
 
----
+## Test with a classroom video
 
-# 📸 Screenshots
+1. Open `http://localhost:5173`.
+2. Scroll to **Live Inference**.
+3. Select **Upload classroom video**.
+4. Choose an MP4, AVI, MOV, MKV, WebM, or M4V file.
+5. Wait for the upload to finish.
+6. The video, person boxes, count, occupancy, confidence, and AC state will
+   update automatically.
 
+Uploaded videos are stored locally in:
+
+```text
+backend\uploads
 ```
-screenshots/
 
-dashboard.png
+No video is sent to a cloud service.
 
-detection.png
+## Use a webcam or camera stream
 
-training.png
+The default camera source is webcam `0`. Set another source before starting the
+backend when required:
 
-label-studio.png
+```powershell
+$env:CAMERA_SOURCE = "1"
 ```
 
----
+For an RTSP camera:
 
-# 🔮 Future Improvements
+```powershell
+$env:CAMERA_SOURCE = "rtsp://username:password@camera-address/stream"
+```
 
-- Student Tracking (ByteTrack/DeepSORT)
-- Face Anonymization
-- Raspberry Pi Optimization
-- MQTT Integration
-- IoT-Based Smart Classroom
-- Cloud Dashboard
-- Automatic Model Retraining (MLOps)
+Then start the backend using the Terminal 1 command.
 
----
+## Production build
 
-# 👨‍💻 Team
+Build the optimized frontend:
 
-**University of Jaffna**
+```powershell
+Set-Location frontend
+npm.cmd run build
+```
 
-**Faculty of Science**
+The production files are created in `dist`.
 
-**Edge Computing Project – 2026**
+Preview the production build locally:
 
----
+```powershell
+npm.cmd run preview -- --host 127.0.0.1 --port 5173
+```
 
-# 📄 License
+The FastAPI backend must still be running in the other terminal.
 
-This project is developed for educational and research purposes.
+## Stop the system
 
----
+Press `Ctrl+C` once in the backend terminal and once in the dashboard terminal.
 
-# 🙏 Acknowledgements
+## Configuration
 
-- University of Jaffna
-- Ultralytics YOLO
-- Label Studio
-- OpenCV
-- Google Colab
-- Microsoft Azure Machine Learning
-- Docker
+Frontend configuration is stored in `frontend\.env`:
+
+```env
+VITE_USE_API=true
+VITE_API_BASE_URL=http://localhost:8010
+VITE_API_POLL_MS=200
+```
+
+Backend configuration examples are in `backend\.env.example`. Important
+options include:
+
+- `CAMERA_SOURCE`
+- `CONFIDENCE_THRESHOLD`
+- `FRAME_INTERVAL`
+- `OCCUPANCY_CONFIRM_SECONDS`
+- `OCCUPANCY_RELEASE_SECONDS`
+- `AC_MIN_ON_SECONDS`
+- `AC_MIN_OFF_SECONDS`
+- `TEMP_CHANGE_COOLDOWN_SECONDS`
+
+## API endpoints
+
+- `GET /status` — person count, occupancy and protected AC command
+- `GET /health` — backend, model and camera health
+- `GET /snapshot.jpg` — latest frame with person bounding boxes
+- `POST /video` — upload a classroom video
+
+## Common problems
+
+### Dashboard says backend unavailable
+
+Make sure Terminal 1 is still running and open:
+
+```text
+http://localhost:8010/health
+```
+
+### Webcam is inactive
+
+The webcam may be unavailable or used by another application. Close other
+camera applications, or upload a video through the dashboard.
+
+### PowerShell blocks a `.ps1` script
+
+Use the full Python and npm commands shown in this guide. They do not require
+running the helper scripts.
+
+### Port already in use
+
+Stop the old backend/dashboard terminal with `Ctrl+C`, then run the commands
+again.
