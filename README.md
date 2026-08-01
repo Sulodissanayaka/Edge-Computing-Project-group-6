@@ -1,366 +1,235 @@
-# 🎓 Smart Classroom Edge AI System
+# 🧠 Smart Classroom — Data Scientist Deliverables
 
-An AI-powered Smart Classroom system that detects classroom occupancy from classroom videos using **YOLO Object Detection**. Images are annotated using **Label Studio**, the model is trained in **Google Colab** or **Microsoft Azure Machine Learning**, and the trained model is deployed on an **Edge Device** for real-time occupancy detection and automatic AC control simulation.
+This branch contains the computer-vision deliverables produced by the Data
+Scientist team for the **Smart Classroom Edge AI System**. The package provides
+an exported YOLO11 ONNX person detector, local inference source code, runtime
+dependencies, Docker support, and the integration contract required by the
+application team.
 
----
-
-## 📖 Project Overview
-
-This project was developed for the **Edge Computing** course.
-
-The system automatically:
-
-- 📹 Detects students from classroom videos
-- 👥 Counts the number of students
-- 📊 Classifies classroom occupancy
-- ❄️ Simulates automatic Air Conditioner (AC) control
-- 📈 Displays the current classroom status on a dashboard
-- 💻 Runs locally on an Edge Device
+> University of Jaffna — Edge Computing Project, Group 6, 2026
 
 ---
 
-# 🏗️ System Workflow
+## 📖 Purpose
 
-```
-Classroom Videos
-        │
-        ▼
-Extract Images
-        │
-        ▼
-Label Studio
-(Image Annotation)
-        │
-        ▼
-Export YOLO Dataset
-        │
-        ▼
-Google Colab / Azure ML
-(Model Training)
-        │
-        ▼
-YOLO Model (best.pt)
-        │
-        ▼
-Edge Device
-(Local Inference)
-        │
-        ▼
-Student Detection
-        │
-        ▼
-Student Counting
-        │
-        ▼
-Occupancy Classification
-        │
-        ▼
-Dashboard
-        │
-        ▼
-Automatic AC Control
-```
+The model detects people in classroom video on a local edge device. Detection
+results are converted into a people count and an occupancy category that the
+application can use for AC-control recommendations.
+
+The Data Scientist package is responsible for:
+
+- providing the exported ONNX model;
+- defining preprocessing and output expectations;
+- running local person-detection inference;
+- exposing detections through a small FastAPI service;
+- documenting confidence, IoU, and occupancy defaults;
+- protecting private classroom data from accidental commits.
+
+Dashboard components, application integration, and deployment orchestration
+belong to the `App-Developers` branch and are not included here.
 
 ---
 
-# 🚀 Features
+## 📁 Branch Structure
 
-- Real-time Student Detection
-- Student Counting
-- Occupancy Classification
-- Low / Medium / High Occupancy Detection
-- Janitor Activity Detection
-- Automatic AC Simulation
-- Dashboard Monitoring
-- Cloud Model Training
-- Edge AI Deployment
-- Docker Support
-
----
-
-# 🏷️ Image Annotation
-
-The dataset was annotated using **Label Studio**.
-
-### Annotation Steps
-
-1. Record classroom videos.
-2. Extract images from videos.
-3. Upload images to Label Studio.
-4. Draw bounding boxes around each student.
-5. Export annotations in **YOLO** format.
-6. Create the training dataset.
-
----
-
-# ☁️ Cloud Training
-
-The YOLO model is trained using cloud computing.
-
-Supported platforms:
-
-- Google Colab
-- Microsoft Azure Machine Learning
-
-Training command:
-
-```bash
-yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
-```
-
-After training, the best model is exported as:
-
-```
-best.pt
-```
-
----
-
-# 💻 Edge Deployment
-
-The trained model runs locally on an Edge Device.
-
-Supported devices:
-
-- Windows PC
-- Ubuntu Linux
-- Raspberry Pi
-- NVIDIA Jetson Nano
-
-The system performs real-time inference without requiring an internet connection.
-
----
-
-# 📊 Occupancy Levels
-
-| Students | Occupancy |
-|----------|-----------|
-| 1–2 | Low |
-| 3–9 | Medium |
-| 10+ | High |
-
----
-
-# ❄️ AC Simulation
-
-| Occupancy | AC Status | Temperature |
-|-----------|-----------|-------------|
-| Low | OFF | -- |
-| Medium | ON | 24°C |
-| High | ON | 20°C |
-
----
-
-# 📁 Project Structure
-
-```
-Smart-Classroom-Edge-AI/
-│
-├── dataset/
-│   ├── train/
-│   ├── valid/
-│   ├── test/
-│   ├── videos/
-│   └── data.yaml
-│
-├── label-studio/
-│
-├── training/
-│   ├── train.py
-│   ├── detect.py
-│   └── evaluate.py
-│
-├── edge/
-│   ├── run_edge.py
-│   ├── occupancy.py
-│   └── ac_controller.py
-│
-├── dashboard/
-│   └── app.py
-│
-├── models/
-│   └── best.pt
-│
-├── screenshots/
-│
-├── docs/
-│
-├── Dockerfile
-├── docker-compose.yml
-├── requirements.txt
+```text
+Data-Scientists/
+├── data-science/
+│   ├── models/
+│   │   ├── classroom_person.onnx
+│   │   └── README.md
+│   ├── src/
+│   │   ├── __init__.py
+│   │   └── main.py
+│   ├── Dockerfile
+│   ├── README.md
+│   └── requirements.txt
 └── README.md
 ```
 
----
-
-# 🛠️ Technologies Used
-
-## Programming
-
-- Python
-
-## Computer Vision
-
-- YOLO11 (Ultralytics)
-- OpenCV
-
-## Annotation
-
-- Label Studio
-
-## Cloud Training
-
-- Google Colab
-- Microsoft Azure Machine Learning
-
-## Dashboard
-
-- Streamlit
-- Flask
-
-## Deployment
-
-- Docker
+Detailed runtime and API information is available in
+[`data-science/README.md`](data-science/README.md).
 
 ---
 
-# ⚙️ Installation
+## 🧠 Model Contract
 
-Clone the repository:
+| Property | Value |
+| --- | --- |
+| Task | Classroom person detection |
+| Model | YOLO11n |
+| Format | ONNX |
+| Model file | `data-science/models/classroom_person.onnx` |
+| Input | `1 × 3 × 320 × 320` float32 RGB tensor |
+| Preprocessing | Letterbox padding with 114, RGB conversion, divide by 255 |
+| Inference engine | OpenCV DNN |
+| Default confidence | 0.25 |
+| Default IoU threshold | 0.45 |
+| Detected class | Person |
 
-```bash
-git clone https://github.com/your-username/Smart-Classroom-Edge-AI.git
-```
+The service returns bounding boxes and confidence scores. The people count is
+the number of detections remaining after confidence filtering and non-maximum
+suppression.
 
-Move to the project directory:
+---
 
-```bash
-cd Smart-Classroom-Edge-AI
-```
+## 📊 Default Occupancy Rules
 
-Install dependencies:
+| People detected | Occupancy | AC recommendation | Temperature |
+| ---: | --- | --- | ---: |
+| 0 | Empty | OFF | — |
+| 1–2 | Low | OFF | — |
+| 3–9 | Medium | ON | 24°C |
+| 10+ | High | ON | 20°C |
 
-```bash
+These are backend defaults. The application dashboard may allow users to adjust
+the displayed automation thresholds.
+
+---
+
+## ⚙️ Local Setup
+
+Requirements:
+
+- Python 3.10 or newer
+- A webcam, approved classroom video, or supported video stream
+
+```powershell
+git clone --branch Data-Scientists https://github.com/Sulodissanayaka/Edge-Computing-Project-group-6.git
+cd Edge-Computing-Project-group-6\data-science
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
+
+Open <http://localhost:8000/health> to check model and camera readiness.
+
+The default camera source is device `0`. Set `CAMERA_SOURCE` to another camera
+index, local video path, RTSP URL, or HTTP stream when required.
 
 ---
 
-# ▶️ Train the Model
+## 🐳 Docker
+
+Build the standalone inference image:
 
 ```bash
-python training/train.py
+cd data-science
+docker build -t smart-classroom-inference .
 ```
 
-or
+Run it:
 
 ```bash
-yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
+docker run --rm -p 8000:8000 smart-classroom-inference
 ```
+
+Camera-device access from Docker depends on the host operating system. An
+approved uploaded video is the most portable demonstration input.
 
 ---
 
-# ▶️ Run Detection
+## 🔌 API Handoff
 
-Video
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Reports model and camera readiness |
+| `GET` | `/status` | Returns count, detections, occupancy, and AC recommendation |
+| `GET` | `/snapshot.jpg` | Returns the latest frame with detection boxes |
+| `POST` | `/video` | Uploads a classroom video for local inference |
 
-```bash
-python training/detect.py
-```
+Important response fields include:
 
-Webcam
-
-```python
-source = 0
-```
-
-Image
-
-```python
-source = "image.jpg"
-```
-
----
-
-# 📊 Dashboard
-
-The dashboard displays:
-
-- Student Count
-- Occupancy Level
-- AC Status
-- Temperature
-- Timestamp
-- AC Running Time
+- `person_count`
+- `detections`
+- `confidence`
+- `inference_ms`
+- `occupancy`
+- `ac_state`
+- `temperature`
+- `control_pending`
+- `control_reason`
 
 ---
 
-# 🐳 Docker
+## 🔧 Runtime Configuration
 
-Build:
+The inference service supports these environment variables:
 
-```bash
-docker build -t smart-classroom .
-```
-
-Run:
-
-```bash
-docker run smart-classroom
-```
-
----
-
-# 📸 Screenshots
-
-```
-screenshots/
-
-dashboard.png
-
-detection.png
-
-training.png
-
-label-studio.png
-```
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `MODEL_PATH` | `models/classroom_person.onnx` | ONNX model location |
+| `CAMERA_SOURCE` | `0` | Camera, video file, or stream |
+| `CONFIDENCE_THRESHOLD` | `0.25` | Minimum detection confidence |
+| `IOU_THRESHOLD` | `0.45` | Non-maximum suppression threshold |
+| `FRAME_INTERVAL` | `0.02` | Delay between processed frames |
+| `OCCUPANCY_CONFIRM_SECONDS` | `15` | Confirmation before occupancy increases |
+| `OCCUPANCY_RELEASE_SECONDS` | `60` | Confirmation before occupancy decreases |
+| `AC_MIN_ON_SECONDS` | `300` | Minimum simulated AC ON duration |
+| `AC_MIN_OFF_SECONDS` | `30` | Minimum simulated AC OFF duration |
+| `TEMP_CHANGE_COOLDOWN_SECONDS` | `600` | Minimum interval between temperature changes |
 
 ---
 
-# 🔮 Future Improvements
+## ✅ Validation Checklist
 
-- Student Tracking (ByteTrack/DeepSORT)
-- Face Anonymization
-- Raspberry Pi Optimization
-- MQTT Integration
-- IoT-Based Smart Classroom
-- Cloud Dashboard
-- Automatic Model Retraining (MLOps)
+Before handing a new model to the application team:
 
----
-
-# 👨‍💻 Team
-
-**University of Jaffna**
-
-**Faculty of Science**
-
-**Edge Computing Project – 2026**
+1. Confirm the ONNX file loads with OpenCV DNN.
+2. Verify the input shape and normalization have not changed.
+3. Test an approved classroom video with no people, few people, and many people.
+4. Record detection quality and important limitations.
+5. Check the `/health`, `/status`, and `/snapshot.jpg` endpoints.
+6. Update the model contract if output tensor structure changes.
+7. Confirm that no datasets, recordings, credentials, or caches are staged.
 
 ---
 
-# 📄 License
+## 🔐 Data and Privacy Policy
 
-This project is developed for educational and research purposes.
+- Do not commit raw classroom videos or private datasets.
+- Use only recordings collected with appropriate permission.
+- Prefer anonymized or non-identifiable validation samples.
+- Never commit `.env` files, credentials, virtual environments, or training
+  service tokens.
+- Keep large experiment outputs and training caches outside the repository.
+- The inference package processes frames locally and does not intentionally
+  store detected faces.
 
 ---
 
-# 🙏 Acknowledgements
+## 🤝 Team Handoff
 
-- University of Jaffna
-- Ultralytics YOLO
-- Label Studio
-- OpenCV
-- Google Colab
-- Microsoft Azure Machine Learning
-- Docker
+When the model changes, provide the App Developers with:
+
+- the exported `.onnx` file;
+- input shape and preprocessing requirements;
+- output tensor format;
+- class names;
+- recommended confidence and IoU thresholds;
+- evaluation results and known limitations;
+- a version or commit identifier for the model artifact.
+
+Changes should be reviewed through a pull request into `Data-Scientists`. The
+completed team branches can later be integrated into `main` by the repository
+owner.
+
+---
+
+## 🔮 Future Data Science Improvements
+
+- Add formal evaluation metrics and reports
+- Add training and ONNX-export scripts
+- Add reproducible model configuration files
+- Add dataset versioning without committing private data
+- Optimize the model for Raspberry Pi and NVIDIA Jetson
+- Add multi-person tracking with ByteTrack or DeepSORT
+- Evaluate privacy-preserving face anonymization
+- Add automated model-regression checks
+
+---
+
+## 📄 Use
+
+This project is intended for educational and research purposes.
