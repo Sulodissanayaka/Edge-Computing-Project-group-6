@@ -1,126 +1,39 @@
-# 🎓 Smart Classroom Edge AI System
+# 🧠 Smart Classroom — Data Scientist Deliverables
 
-An edge-computing application that detects people in classroom video, measures
-occupancy, and recommends energy-aware air-conditioner settings in real time.
-The system combines a **YOLO11 ONNX model**, a **FastAPI inference service**, and
-a responsive **React dashboard** with light and dark modes.
+This branch contains the computer-vision deliverables produced by the Data
+Scientist team for the **Smart Classroom Edge AI System**. The package provides
+an exported YOLO11 ONNX person detector, local inference source code, runtime
+dependencies, Docker support, and the integration contract required by the
+application team.
 
-> Developed for the University of Jaffna Edge Computing Project — 2026.
-
----
-
-## 📖 Project Overview
-
-The Smart Classroom Edge AI System processes camera or uploaded-video frames on
-a local edge device. It does not need to send classroom footage to a cloud
-service for inference.
-
-The system can:
-
-- detect and count people in classroom video;
-- classify occupancy as Empty, Low, Medium, or High;
-- recommend AC state and temperature from occupancy;
-- protect the simulated AC from rapid state and temperature changes;
-- display live status, detections, activity, and running time;
-- accept classroom-video uploads for demonstration;
-- allow manual AC override and editable occupancy thresholds;
-- run locally or as Docker containers.
+> University of Jaffna — Edge Computing Project, Group 6, 2026
 
 ---
 
-## 🏗️ System Workflow
+## 📖 Purpose
+
+The model detects people in classroom video on a local edge device. Detection
+results are converted into a people count and an occupancy category that the
+application can use for AC-control recommendations.
+
+The Data Scientist package is responsible for:
+
+- providing the exported ONNX model;
+- defining preprocessing and output expectations;
+- running local person-detection inference;
+- exposing detections through a small FastAPI service;
+- documenting confidence, IoU, and occupancy defaults;
+- protecting private classroom data from accidental commits.
+
+Dashboard components, application integration, and deployment orchestration
+belong to the `App-Developers` branch and are not included here.
+
+---
+
+## 📁 Branch Structure
 
 ```text
-Camera or uploaded classroom video
-                 │
-                 ▼
-        Local edge device
-                 │
-                 ▼
-      YOLO11 ONNX inference
-                 │
-                 ▼
-    Person detection and counting
-                 │
-                 ▼
-      Occupancy classification
-                 │
-                 ▼
-   Protected AC control recommendation
-                 │
-                 ▼
-       React monitoring dashboard
-```
-
-The backend performs inference locally with OpenCV DNN. The frontend polls the
-FastAPI service and presents the current classroom state without storing faces.
-
----
-
-## 🚀 Features
-
-- Local YOLO11 ONNX person detection
-- Webcam, video-file, RTSP, and HTTP-stream input support
-- Classroom-video upload up to 1 GB
-- Empty, Low, Medium, and High occupancy classification
-- Configurable Low, Medium, and High people thresholds
-- Automatic AC ON/OFF and temperature recommendations
-- AC minimum-runtime and cooldown protection
-- Manual Auto, OFF, and ON controls
-- Live annotated snapshot and inference statistics
-- AC runtime and occupancy activity monitoring
-- Responsive light and dark dashboard themes
-- Docker Compose deployment
-- One-click Windows startup script
-
----
-
-## 📊 Occupancy and AC Rules
-
-The backend uses the following default rules:
-
-| People detected | Occupancy | AC state | Temperature |
-| ---: | --- | --- | ---: |
-| 0 | Empty | OFF | — |
-| 1–2 | Low | OFF | — |
-| 3–9 | Medium | ON | 24°C |
-| 10+ | High | ON | 20°C |
-
-The dashboard allows the user to adjust the people thresholds manually. Timing
-guards prevent noisy detections from rapidly switching the simulated AC.
-
----
-
-## 🧠 Model Contract
-
-| Property | Value |
-| --- | --- |
-| Task | Classroom person detection |
-| Model | YOLO11n |
-| Format | ONNX |
-| Input | `1 × 3 × 320 × 320` float32 RGB tensor |
-| Preprocessing | Letterbox padding, RGB conversion, normalization to 0–1 |
-| Inference engine | OpenCV DNN |
-| Default confidence | 0.25 |
-| Default IoU threshold | 0.45 |
-
-The exported model is located at
-`backend/models/classroom_person.onnx`. A separate Data Scientist handoff copy
-and its documentation are available under `data-science/`.
-
----
-
-## 📁 Project Structure
-
-```text
-Edge-Computing-Project-group-6/
-├── backend/
-│   ├── models/
-│   │   └── classroom_person.onnx
-│   ├── .env.example
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
+Data-Scientists/
 ├── data-science/
 │   ├── models/
 │   │   ├── classroom_person.onnx
@@ -131,232 +44,192 @@ Edge-Computing-Project-group-6/
 │   ├── Dockerfile
 │   ├── README.md
 │   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── api.js
-│   │   ├── icons.jsx
-│   │   ├── main.jsx
-│   │   └── styles.css
-│   ├── .env.example
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── package.json
-│   └── vite.config.js
-├── docs/
-│   ├── TEAM_PROJECT_OVERVIEW.md
-│   └── dashboard-reference.png
-├── scripts/
-│   ├── run-backend.ps1
-│   ├── run-dashboard.ps1
-│   └── start-project.bat
-├── docker-compose.yml
-├── .gitignore
 └── README.md
 ```
 
+Detailed runtime and API information is available in
+[`data-science/README.md`](data-science/README.md).
+
 ---
 
-## 🛠️ Technologies
+## 🧠 Model Contract
 
-| Area | Technology |
+| Property | Value |
 | --- | --- |
-| Frontend | React 19, Vite 8, CSS |
-| Backend API | Python, FastAPI, Uvicorn |
-| Computer vision | YOLO11 ONNX, OpenCV DNN, NumPy |
-| Web server | Nginx for the production frontend container |
-| Deployment | Docker and Docker Compose |
-| Edge runtime | Windows or Linux computer with camera/video access |
+| Task | Classroom person detection |
+| Model | YOLO11n |
+| Format | ONNX |
+| Model file | `data-science/models/classroom_person.onnx` |
+| Input | `1 × 3 × 320 × 320` float32 RGB tensor |
+| Preprocessing | Letterbox padding with 114, RGB conversion, divide by 255 |
+| Inference engine | OpenCV DNN |
+| Default confidence | 0.25 |
+| Default IoU threshold | 0.45 |
+| Detected class | Person |
+
+The service returns bounding boxes and confidence scores. The people count is
+the number of detections remaining after confidence filtering and non-maximum
+suppression.
 
 ---
 
-## ⚡ Quick Start on Windows
+## 📊 Default Occupancy Rules
 
-### Option 1: Double-click startup
+| People detected | Occupancy | AC recommendation | Temperature |
+| ---: | --- | --- | ---: |
+| 0 | Empty | OFF | — |
+| 1–2 | Low | OFF | — |
+| 3–9 | Medium | ON | 24°C |
+| 10+ | High | ON | 20°C |
 
-1. Install Python 3.10 or newer and Node.js 20 or newer.
-2. Create the Python environment once:
+These are backend defaults. The application dashboard may allow users to adjust
+the displayed automation thresholds.
+
+---
+
+## ⚙️ Local Setup
+
+Requirements:
+
+- Python 3.10 or newer
+- A webcam, approved classroom video, or supported video stream
 
 ```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-```
-
-3. Double-click `scripts/start-project.bat`.
-
-The script installs missing frontend packages, starts both services, and opens
-the dashboard automatically.
-
-### Option 2: Start each service manually
-
-Backend:
-
-```powershell
+git clone --branch Data-Scientists https://github.com/Sulodissanayaka/Edge-Computing-Project-group-6.git
+cd Edge-Computing-Project-group-6\data-science
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r backend\requirements.txt
-uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8010
+pip install -r requirements.txt
+uvicorn src.main:app --host 0.0.0.0 --port 8000
 ```
 
-Frontend, in a second terminal:
+Open <http://localhost:8000/health> to check model and camera readiness.
 
-```powershell
-cd frontend
-npm install
-npm run dev -- --host 0.0.0.0
-```
-
-Open <http://localhost:5173>.
+The default camera source is device `0`. Set `CAMERA_SOURCE` to another camera
+index, local video path, RTSP URL, or HTTP stream when required.
 
 ---
 
-## 🐳 Run with Docker Compose
+## 🐳 Docker
 
-Requirements: Docker Desktop or Docker Engine with Docker Compose.
-
-```bash
-git clone https://github.com/Sulodissanayaka/Edge-Computing-Project-group-6.git
-cd Edge-Computing-Project-group-6
-docker compose up --build
-```
-
-Services:
-
-| Service | Address |
-| --- | --- |
-| Dashboard | <http://localhost:5173> |
-| Backend API | <http://localhost:8010> |
-| API health check | <http://localhost:8010/health> |
-
-Stop the containers with:
+Build the standalone inference image:
 
 ```bash
-docker compose down
+cd data-science
+docker build -t smart-classroom-inference .
 ```
 
-> Camera access from Docker depends on the host operating system. Uploading a
-> classroom video from the dashboard is the simplest portable demonstration.
+Run it:
+
+```bash
+docker run --rm -p 8000:8000 smart-classroom-inference
+```
+
+Camera-device access from Docker depends on the host operating system. An
+approved uploaded video is the most portable demonstration input.
 
 ---
 
-## ⚙️ Configuration
+## 🔌 API Handoff
 
-Copy the example files before changing local settings:
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Reports model and camera readiness |
+| `GET` | `/status` | Returns count, detections, occupancy, and AC recommendation |
+| `GET` | `/snapshot.jpg` | Returns the latest frame with detection boxes |
+| `POST` | `/video` | Uploads a classroom video for local inference |
 
-```powershell
-Copy-Item backend\.env.example backend\.env
-Copy-Item frontend\.env.example frontend\.env
-```
+Important response fields include:
 
-Important backend variables:
+- `person_count`
+- `detections`
+- `confidence`
+- `inference_ms`
+- `occupancy`
+- `ac_state`
+- `temperature`
+- `control_pending`
+- `control_reason`
+
+---
+
+## 🔧 Runtime Configuration
+
+The inference service supports these environment variables:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `CAMERA_SOURCE` | `0` | Camera index, video path, or stream URL |
 | `MODEL_PATH` | `models/classroom_person.onnx` | ONNX model location |
+| `CAMERA_SOURCE` | `0` | Camera, video file, or stream |
 | `CONFIDENCE_THRESHOLD` | `0.25` | Minimum detection confidence |
 | `IOU_THRESHOLD` | `0.45` | Non-maximum suppression threshold |
+| `FRAME_INTERVAL` | `0.02` | Delay between processed frames |
 | `OCCUPANCY_CONFIRM_SECONDS` | `15` | Confirmation before occupancy increases |
 | `OCCUPANCY_RELEASE_SECONDS` | `60` | Confirmation before occupancy decreases |
 | `AC_MIN_ON_SECONDS` | `300` | Minimum simulated AC ON duration |
 | `AC_MIN_OFF_SECONDS` | `30` | Minimum simulated AC OFF duration |
-
-Important frontend variables:
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `VITE_USE_API` | `true` | Enables the live FastAPI connection |
-| `VITE_API_BASE_URL` | `http://localhost:8010` | Backend address |
-| `VITE_API_POLL_MS` | `200` | Dashboard polling interval |
+| `TEMP_CHANGE_COOLDOWN_SECONDS` | `600` | Minimum interval between temperature changes |
 
 ---
 
-## 🔌 Backend API
+## ✅ Validation Checklist
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Model and camera readiness |
-| `GET` | `/status` | Count, detections, occupancy, and AC recommendation |
-| `GET` | `/snapshot.jpg` | Latest frame with detection boxes |
-| `POST` | `/video` | Upload a classroom video for local inference |
+Before handing a new model to the application team:
 
----
-
-## 📸 Dashboard
-
-The dashboard displays:
-
-- live inference video and detection boxes;
-- people count and confidence;
-- occupancy level and recent activity;
-- AC state, temperature, and running time;
-- inference device, model, latency, and system status;
-- editable automation rules and manual AC override;
-- dark and light appearance modes.
-
-![Smart Classroom dashboard](docs/dashboard-reference.png)
+1. Confirm the ONNX file loads with OpenCV DNN.
+2. Verify the input shape and normalization have not changed.
+3. Test an approved classroom video with no people, few people, and many people.
+4. Record detection quality and important limitations.
+5. Check the `/health`, `/status`, and `/snapshot.jpg` endpoints.
+6. Update the model contract if output tensor structure changes.
+7. Confirm that no datasets, recordings, credentials, or caches are staged.
 
 ---
 
-## 🔐 Privacy and Data Safety
+## 🔐 Data and Privacy Policy
 
-- Inference runs locally on the edge device.
-- The dashboard does not intentionally store detected faces.
-- Uploaded videos, datasets, environments, caches, and credentials are ignored
-  by Git.
-- Only use classroom recordings with appropriate permission.
-- Never commit `.env` files, private datasets, or identifiable recordings.
-
----
-
-## 🌿 Team Branches
-
-| Branch | Responsibility |
-| --- | --- |
-| `main` | Reviewed, integrated project |
-| `App-Developers` | Dashboard, backend integration, and deployment |
-| `Data-Scientists` | Model artifact, inference contract, and AI documentation |
-| `Product-Owner` | Product planning and acceptance material |
-| `Scrum-Master` | Sprint and process documentation |
-
-Create changes on the appropriate team branch and use a pull request for review
-before merging into `main`. Avoid force-pushing shared branches.
+- Do not commit raw classroom videos or private datasets.
+- Use only recordings collected with appropriate permission.
+- Prefer anonymized or non-identifiable validation samples.
+- Never commit `.env` files, credentials, virtual environments, or training
+  service tokens.
+- Keep large experiment outputs and training caches outside the repository.
+- The inference package processes frames locally and does not intentionally
+  store detected faces.
 
 ---
 
-## 🔮 Future Improvements
+## 🤝 Team Handoff
 
-- Multi-person tracking with ByteTrack or DeepSORT
-- Face and identity anonymization
-- Raspberry Pi and NVIDIA Jetson optimization
-- MQTT integration with a physical AC controller
-- Historical occupancy analytics and export
-- Automated model evaluation and retraining
-- Authentication and role-based dashboard access
-- Hardware temperature and energy-consumption sensors
+When the model changes, provide the App Developers with:
 
----
+- the exported `.onnx` file;
+- input shape and preprocessing requirements;
+- output tensor format;
+- class names;
+- recommended confidence and IoU thresholds;
+- evaluation results and known limitations;
+- a version or commit identifier for the model artifact.
 
-## 👨‍💻 Team
-
-**University of Jaffna**<br>
-**Faculty of Science**<br>
-**Edge Computing Project — Group 6, 2026**
+Changes should be reviewed through a pull request into `Data-Scientists`. The
+completed team branches can later be integrated into `main` by the repository
+owner.
 
 ---
 
-## 📄 License
+## 🔮 Future Data Science Improvements
 
-This project is developed for educational and research purposes. Add a formal
-license file before distributing or reusing the project outside the course.
+- Add formal evaluation metrics and reports
+- Add training and ONNX-export scripts
+- Add reproducible model configuration files
+- Add dataset versioning without committing private data
+- Optimize the model for Raspberry Pi and NVIDIA Jetson
+- Add multi-person tracking with ByteTrack or DeepSORT
+- Evaluate privacy-preserving face anonymization
+- Add automated model-regression checks
 
 ---
 
-## 🙏 Acknowledgements
+## 📄 Use
 
-- University of Jaffna
-- Ultralytics YOLO
-- OpenCV
-- FastAPI
-- React and Vite
-- Docker
+This project is intended for educational and research purposes.
