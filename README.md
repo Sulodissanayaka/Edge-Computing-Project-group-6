@@ -1,362 +1,366 @@
 # 🎓 Smart Classroom Edge AI System
 
-An edge-computing application that detects people in classroom video, measures
-occupancy, and recommends energy-aware air-conditioner settings in real time.
-The system combines a **YOLO11 ONNX model**, a **FastAPI inference service**, and
-a responsive **React dashboard** with light and dark modes.
-
-> Developed for the University of Jaffna Edge Computing Project — 2026.
+An AI-powered Smart Classroom system that detects classroom occupancy from classroom videos using **YOLO Object Detection**. Images are annotated using **Label Studio**, the model is trained in **Google Colab** or **Microsoft Azure Machine Learning**, and the trained model is deployed on an **Edge Device** for real-time occupancy detection and automatic AC control simulation.
 
 ---
 
 ## 📖 Project Overview
 
-The Smart Classroom Edge AI System processes camera or uploaded-video frames on
-a local edge device. It does not need to send classroom footage to a cloud
-service for inference.
+This project was developed for the **Edge Computing** course.
 
-The system can:
+The system automatically:
 
-- detect and count people in classroom video;
-- classify occupancy as Empty, Low, Medium, or High;
-- recommend AC state and temperature from occupancy;
-- protect the simulated AC from rapid state and temperature changes;
-- display live status, detections, activity, and running time;
-- accept classroom-video uploads for demonstration;
-- allow manual AC override and editable occupancy thresholds;
-- run locally or as Docker containers.
+- 📹 Detects students from classroom videos
+- 👥 Counts the number of students
+- 📊 Classifies classroom occupancy
+- ❄️ Simulates automatic Air Conditioner (AC) control
+- 📈 Displays the current classroom status on a dashboard
+- 💻 Runs locally on an Edge Device
 
 ---
 
-## 🏗️ System Workflow
+# 🏗️ System Workflow
 
-```text
-Camera or uploaded classroom video
-                 │
-                 ▼
-        Local edge device
-                 │
-                 ▼
-      YOLO11 ONNX inference
-                 │
-                 ▼
-    Person detection and counting
-                 │
-                 ▼
-      Occupancy classification
-                 │
-                 ▼
-   Protected AC control recommendation
-                 │
-                 ▼
-       React monitoring dashboard
+```
+Classroom Videos
+        │
+        ▼
+Extract Images
+        │
+        ▼
+Label Studio
+(Image Annotation)
+        │
+        ▼
+Export YOLO Dataset
+        │
+        ▼
+Google Colab / Azure ML
+(Model Training)
+        │
+        ▼
+YOLO Model (best.pt)
+        │
+        ▼
+Edge Device
+(Local Inference)
+        │
+        ▼
+Student Detection
+        │
+        ▼
+Student Counting
+        │
+        ▼
+Occupancy Classification
+        │
+        ▼
+Dashboard
+        │
+        ▼
+Automatic AC Control
 ```
 
-The backend performs inference locally with OpenCV DNN. The frontend polls the
-FastAPI service and presents the current classroom state without storing faces.
+---
+
+# 🚀 Features
+
+- Real-time Student Detection
+- Student Counting
+- Occupancy Classification
+- Low / Medium / High Occupancy Detection
+- Janitor Activity Detection
+- Automatic AC Simulation
+- Dashboard Monitoring
+- Cloud Model Training
+- Edge AI Deployment
+- Docker Support
 
 ---
 
-## 🚀 Features
+# 🏷️ Image Annotation
 
-- Local YOLO11 ONNX person detection
-- Webcam, video-file, RTSP, and HTTP-stream input support
-- Classroom-video upload up to 1 GB
-- Empty, Low, Medium, and High occupancy classification
-- Configurable Low, Medium, and High people thresholds
-- Automatic AC ON/OFF and temperature recommendations
-- AC minimum-runtime and cooldown protection
-- Manual Auto, OFF, and ON controls
-- Live annotated snapshot and inference statistics
-- AC runtime and occupancy activity monitoring
-- Responsive light and dark dashboard themes
-- Docker Compose deployment
-- One-click Windows startup script
+The dataset was annotated using **Label Studio**.
+
+### Annotation Steps
+
+1. Record classroom videos.
+2. Extract images from videos.
+3. Upload images to Label Studio.
+4. Draw bounding boxes around each student.
+5. Export annotations in **YOLO** format.
+6. Create the training dataset.
 
 ---
 
-## 📊 Occupancy and AC Rules
+# ☁️ Cloud Training
 
-The backend uses the following default rules:
+The YOLO model is trained using cloud computing.
 
-| People detected | Occupancy | AC state | Temperature |
-| ---: | --- | --- | ---: |
-| 0 | Empty | OFF | — |
-| 1–2 | Low | OFF | — |
-| 3–9 | Medium | ON | 24°C |
-| 10+ | High | ON | 20°C |
+Supported platforms:
 
-The dashboard allows the user to adjust the people thresholds manually. Timing
-guards prevent noisy detections from rapidly switching the simulated AC.
+- Google Colab
+- Microsoft Azure Machine Learning
 
----
+Training command:
 
-## 🧠 Model Contract
+```bash
+yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
+```
 
-| Property | Value |
-| --- | --- |
-| Task | Classroom person detection |
-| Model | YOLO11n |
-| Format | ONNX |
-| Input | `1 × 3 × 320 × 320` float32 RGB tensor |
-| Preprocessing | Letterbox padding, RGB conversion, normalization to 0–1 |
-| Inference engine | OpenCV DNN |
-| Default confidence | 0.25 |
-| Default IoU threshold | 0.45 |
+After training, the best model is exported as:
 
-The exported model is located at
-`backend/models/classroom_person.onnx`. A separate Data Scientist handoff copy
-and its documentation are available under `data-science/`.
+```
+best.pt
+```
 
 ---
 
-## 📁 Project Structure
+# 💻 Edge Deployment
 
-```text
-Edge-Computing-Project-group-6/
-├── backend/
-│   ├── models/
-│   │   └── classroom_person.onnx
-│   ├── .env.example
-│   ├── Dockerfile
-│   ├── main.py
-│   └── requirements.txt
-├── data-science/
-│   ├── models/
-│   │   ├── classroom_person.onnx
-│   │   └── README.md
-│   ├── src/
-│   │   ├── __init__.py
-│   │   └── main.py
-│   ├── Dockerfile
-│   ├── README.md
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── api.js
-│   │   ├── icons.jsx
-│   │   ├── main.jsx
-│   │   └── styles.css
-│   ├── .env.example
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   ├── package.json
-│   └── vite.config.js
+The trained model runs locally on an Edge Device.
+
+Supported devices:
+
+- Windows PC
+- Ubuntu Linux
+- Raspberry Pi
+- NVIDIA Jetson Nano
+
+The system performs real-time inference without requiring an internet connection.
+
+---
+
+# 📊 Occupancy Levels
+
+| Students | Occupancy |
+|----------|-----------|
+| 1–2 | Low |
+| 3–9 | Medium |
+| 10+ | High |
+
+---
+
+# ❄️ AC Simulation
+
+| Occupancy | AC Status | Temperature |
+|-----------|-----------|-------------|
+| Low | OFF | -- |
+| Medium | ON | 24°C |
+| High | ON | 20°C |
+
+---
+
+# 📁 Project Structure
+
+```
+Smart-Classroom-Edge-AI/
+│
+├── dataset/
+│   ├── train/
+│   ├── valid/
+│   ├── test/
+│   ├── videos/
+│   └── data.yaml
+│
+├── label-studio/
+│
+├── training/
+│   ├── train.py
+│   ├── detect.py
+│   └── evaluate.py
+│
+├── edge/
+│   ├── run_edge.py
+│   ├── occupancy.py
+│   └── ac_controller.py
+│
+├── dashboard/
+│   └── app.py
+│
+├── models/
+│   └── best.pt
+│
+├── screenshots/
+│
 ├── docs/
-│   ├── TEAM_PROJECT_OVERVIEW.md
-│   └── dashboard-reference.png
-├── scripts/
-│   ├── run-backend.ps1
-│   ├── run-dashboard.ps1
-│   └── start-project.bat
+│
+├── Dockerfile
 ├── docker-compose.yml
-├── .gitignore
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🛠️ Technologies
+# 🛠️ Technologies Used
 
-| Area | Technology |
-| --- | --- |
-| Frontend | React 19, Vite 8, CSS |
-| Backend API | Python, FastAPI, Uvicorn |
-| Computer vision | YOLO11 ONNX, OpenCV DNN, NumPy |
-| Web server | Nginx for the production frontend container |
-| Deployment | Docker and Docker Compose |
-| Edge runtime | Windows or Linux computer with camera/video access |
+## Programming
 
----
+- Python
 
-## ⚡ Quick Start on Windows
+## Computer Vision
 
-### Option 1: Double-click startup
+- YOLO11 (Ultralytics)
+- OpenCV
 
-1. Install Python 3.10 or newer and Node.js 20 or newer.
-2. Create the Python environment once:
+## Annotation
 
-```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-```
+- Label Studio
 
-3. Double-click `scripts/start-project.bat`.
+## Cloud Training
 
-The script installs missing frontend packages, starts both services, and opens
-the dashboard automatically.
+- Google Colab
+- Microsoft Azure Machine Learning
 
-### Option 2: Start each service manually
+## Dashboard
 
-Backend:
+- Streamlit
+- Flask
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r backend\requirements.txt
-uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8010
-```
+## Deployment
 
-Frontend, in a second terminal:
-
-```powershell
-cd frontend
-npm install
-npm run dev -- --host 0.0.0.0
-```
-
-Open <http://localhost:5173>.
+- Docker
 
 ---
 
-## 🐳 Run with Docker Compose
+# ⚙️ Installation
 
-Requirements: Docker Desktop or Docker Engine with Docker Compose.
+Clone the repository:
 
 ```bash
-git clone https://github.com/Sulodissanayaka/Edge-Computing-Project-group-6.git
-cd Edge-Computing-Project-group-6
-docker compose up --build
+git clone https://github.com/your-username/Smart-Classroom-Edge-AI.git
 ```
 
-Services:
-
-| Service | Address |
-| --- | --- |
-| Dashboard | <http://localhost:5173> |
-| Backend API | <http://localhost:8010> |
-| API health check | <http://localhost:8010/health> |
-
-Stop the containers with:
+Move to the project directory:
 
 ```bash
-docker compose down
+cd Smart-Classroom-Edge-AI
 ```
 
-> Camera access from Docker depends on the host operating system. Uploading a
-> classroom video from the dashboard is the simplest portable demonstration.
+Install dependencies:
 
----
-
-## ⚙️ Configuration
-
-Copy the example files before changing local settings:
-
-```powershell
-Copy-Item backend\.env.example backend\.env
-Copy-Item frontend\.env.example frontend\.env
+```bash
+pip install -r requirements.txt
 ```
 
-Important backend variables:
+---
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `CAMERA_SOURCE` | `0` | Camera index, video path, or stream URL |
-| `MODEL_PATH` | `models/classroom_person.onnx` | ONNX model location |
-| `CONFIDENCE_THRESHOLD` | `0.25` | Minimum detection confidence |
-| `IOU_THRESHOLD` | `0.45` | Non-maximum suppression threshold |
-| `OCCUPANCY_CONFIRM_SECONDS` | `15` | Confirmation before occupancy increases |
-| `OCCUPANCY_RELEASE_SECONDS` | `60` | Confirmation before occupancy decreases |
-| `AC_MIN_ON_SECONDS` | `300` | Minimum simulated AC ON duration |
-| `AC_MIN_OFF_SECONDS` | `30` | Minimum simulated AC OFF duration |
+# ▶️ Train the Model
 
-Important frontend variables:
+```bash
+python training/train.py
+```
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `VITE_USE_API` | `true` | Enables the live FastAPI connection |
-| `VITE_API_BASE_URL` | `http://localhost:8010` | Backend address |
-| `VITE_API_POLL_MS` | `200` | Dashboard polling interval |
+or
+
+```bash
+yolo detect train data=dataset/data.yaml model=yolo11n.pt epochs=100 imgsz=640
+```
 
 ---
 
-## 🔌 Backend API
+# ▶️ Run Detection
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Model and camera readiness |
-| `GET` | `/status` | Count, detections, occupancy, and AC recommendation |
-| `GET` | `/snapshot.jpg` | Latest frame with detection boxes |
-| `POST` | `/video` | Upload a classroom video for local inference |
+Video
+
+```bash
+python training/detect.py
+```
+
+Webcam
+
+```python
+source = 0
+```
+
+Image
+
+```python
+source = "image.jpg"
+```
 
 ---
 
-## 📸 Dashboard
+# 📊 Dashboard
 
 The dashboard displays:
 
-- live inference video and detection boxes;
-- people count and confidence;
-- occupancy level and recent activity;
-- AC state, temperature, and running time;
-- inference device, model, latency, and system status;
-- editable automation rules and manual AC override;
-- dark and light appearance modes.
-
-![Smart Classroom dashboard](docs/dashboard-reference.png)
+- Student Count
+- Occupancy Level
+- AC Status
+- Temperature
+- Timestamp
+- AC Running Time
 
 ---
 
-## 🔐 Privacy and Data Safety
+# 🐳 Docker
 
-- Inference runs locally on the edge device.
-- The dashboard does not intentionally store detected faces.
-- Uploaded videos, datasets, environments, caches, and credentials are ignored
-  by Git.
-- Only use classroom recordings with appropriate permission.
-- Never commit `.env` files, private datasets, or identifiable recordings.
+Build:
 
----
+```bash
+docker build -t smart-classroom .
+```
 
-## 🌿 Team Branches
+Run:
 
-| Branch | Responsibility |
-| --- | --- |
-| `main` | Reviewed, integrated project |
-| `App-Developers` | Dashboard, backend integration, and deployment |
-| `Data-Scientists` | Model artifact, inference contract, and AI documentation |
-| `Product-Owner` | Product planning and acceptance material |
-| `Scrum-Master` | Sprint and process documentation |
-
-Create changes on the appropriate team branch and use a pull request for review
-before merging into `main`. Avoid force-pushing shared branches.
+```bash
+docker run smart-classroom
+```
 
 ---
 
-## 🔮 Future Improvements
+# 📸 Screenshots
 
-- Multi-person tracking with ByteTrack or DeepSORT
-- Face and identity anonymization
-- Raspberry Pi and NVIDIA Jetson optimization
-- MQTT integration with a physical AC controller
-- Historical occupancy analytics and export
-- Automated model evaluation and retraining
-- Authentication and role-based dashboard access
-- Hardware temperature and energy-consumption sensors
+```
+screenshots/
 
----
+dashboard.png
 
-## 👨‍💻 Team
+detection.png
 
-**University of Jaffna**<br>
-**Faculty of Science**<br>
-**Edge Computing Project — Group 6, 2026**
+training.png
+
+label-studio.png
+```
 
 ---
 
-## 📄 License
+# 🔮 Future Improvements
 
-This project is developed for educational and research purposes. Add a formal
-license file before distributing or reusing the project outside the course.
+- Student Tracking (ByteTrack/DeepSORT)
+- Face Anonymization
+- Raspberry Pi Optimization
+- MQTT Integration
+- IoT-Based Smart Classroom
+- Cloud Dashboard
+- Automatic Model Retraining (MLOps)
 
 ---
 
-## 🙏 Acknowledgements
+# 👨‍💻 Team
+
+**University of Jaffna**
+
+**Faculty of Science**
+
+**Edge Computing Project – 2026**
+
+---
+
+# 📄 License
+
+This project is developed for educational and research purposes.
+
+---
+
+# 🙏 Acknowledgements
 
 - University of Jaffna
 - Ultralytics YOLO
+- Label Studio
 - OpenCV
-- FastAPI
-- React and Vite
+- Google Colab
+- Microsoft Azure Machine Learning
 - Docker
