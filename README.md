@@ -1,235 +1,262 @@
-# 🧠 Smart Classroom — Data Scientist Deliverables
+# Smart Classroom Edge AI Dashboard
 
-This branch contains the computer-vision deliverables produced by the Data
-Scientist team for the **Smart Classroom Edge AI System**. The package provides
-an exported YOLO11 ONNX person detector, local inference source code, runtime
-dependencies, Docker support, and the integration contract required by the
-application team.
+This project uses a trained YOLO11 ONNX model to detect and count people in a
+classroom video. A local FastAPI backend processes the video, applies protected
+AC-control rules, and sends live results to the React/Vite dashboard.
 
-> University of Jaffna — Edge Computing Project, Group 6, 2026
+## Occupancy and AC rules
 
----
+- `EMPTY` (0 people): AC OFF
+- `LOW` (1–2 people): AC OFF
+- `MEDIUM` (3–9 people): AC ON at 24°C
+- `HIGH` (10 or more people): AC ON at 20°C
 
-## 📖 Purpose
+To protect the AC from noisy detections and rapid switching, the controller
+confirms increasing occupancy for 15 seconds and decreasing occupancy for 60
+seconds. It also uses a five-minute minimum ON period, a 30-second restart
+delay, and a ten-minute temperature-change cooldown.
 
-The model detects people in classroom video on a local edge device. Detection
-results are converted into a people count and an occupancy category that the
-application can use for AC-control recommendations.
+## Requirements
 
-The Data Scientist package is responsible for:
+- Windows 10 or 11 (for local development)
+- Python 3.10 or newer
+- Node.js 20.19+ or 22.12+
+- npm 10+
+- Docker Desktop (for the recommended container setup)
 
-- providing the exported ONNX model;
-- defining preprocessing and output expectations;
-- running local person-detection inference;
-- exposing detections through a small FastAPI service;
-- documenting confidence, IoU, and occupancy defaults;
-- protecting private classroom data from accidental commits.
-
-Dashboard components, application integration, and deployment orchestration
-belong to the `App-Developers` branch and are not included here.
-
----
-
-## 📁 Branch Structure
+## Project structure
 
 ```text
-Data-Scientists/
-├── data-science/
-│   ├── models/
-│   │   ├── classroom_person.onnx
-│   │   └── README.md
-│   ├── src/
-│   │   ├── __init__.py
-│   │   └── main.py
-│   ├── Dockerfile
-│   ├── README.md
-│   └── requirements.txt
-└── README.md
+.
+|-- backend/
+|   |-- models/
+|   |-- Dockerfile
+|   |-- main.py
+|   `-- requirements.txt
+|-- frontend/
+|   |-- src/
+|   |-- Dockerfile
+|   |-- nginx.conf
+|   |-- package.json
+|   `-- vite.config.js
+|-- scripts/
+|   |-- run-backend.ps1
+|   `-- run-dashboard.ps1
+|-- docker-compose.yml
+`-- docs/
 ```
 
-Detailed runtime and API information is available in
-[`data-science/README.md`](data-science/README.md).
+## Run with Docker
 
----
-
-## 🧠 Model Contract
-
-| Property | Value |
-| --- | --- |
-| Task | Classroom person detection |
-| Model | YOLO11n |
-| Format | ONNX |
-| Model file | `data-science/models/classroom_person.onnx` |
-| Input | `1 × 3 × 320 × 320` float32 RGB tensor |
-| Preprocessing | Letterbox padding with 114, RGB conversion, divide by 255 |
-| Inference engine | OpenCV DNN |
-| Default confidence | 0.25 |
-| Default IoU threshold | 0.45 |
-| Detected class | Person |
-
-The service returns bounding boxes and confidence scores. The people count is
-the number of detections remaining after confidence filtering and non-maximum
-suppression.
-
----
-
-## 📊 Default Occupancy Rules
-
-| People detected | Occupancy | AC recommendation | Temperature |
-| ---: | --- | --- | ---: |
-| 0 | Empty | OFF | — |
-| 1–2 | Low | OFF | — |
-| 3–9 | Medium | ON | 24°C |
-| 10+ | High | ON | 20°C |
-
-These are backend defaults. The application dashboard may allow users to adjust
-the displayed automation thresholds.
-
----
-
-## ⚙️ Local Setup
-
-Requirements:
-
-- Python 3.10 or newer
-- A webcam, approved classroom video, or supported video stream
+Docker Compose starts the React dashboard and FastAPI backend together:
 
 ```powershell
-git clone --branch Data-Scientists https://github.com/Sulodissanayaka/Edge-Computing-Project-group-6.git
-cd Edge-Computing-Project-group-6\data-science
+docker compose up --build
+```
+
+Open:
+
+- Dashboard: `http://localhost:5173`
+- Backend health: `http://localhost:8010/health`
+
+Stop and remove the containers:
+
+```powershell
+docker compose down
+```
+
+Uploaded videos are kept in the named `backend-uploads` Docker volume.
+
+> Camera access from Docker Desktop on Windows depends on the camera source and
+> host configuration. Video upload works without passing a webcam device into
+> the container. For direct webcam use, run the backend locally as described
+> below.
+
+## First-time setup
+
+Open PowerShell in the project directory:
+
+```powershell
+cd "path\to\smart-classroom-vite-dashboard"
+```
+
+Create the isolated Python environment and install backend dependencies:
+
+```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-uvicorn src.main:app --host 0.0.0.0 --port 8000
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
 ```
 
-Open <http://localhost:8000/health> to check model and camera readiness.
+Install dashboard dependencies:
 
-The default camera source is device `0`. Set `CAMERA_SOURCE` to another camera
-index, local video path, RTSP URL, or HTTP stream when required.
-
----
-
-## 🐳 Docker
-
-Build the standalone inference image:
-
-```bash
-cd data-science
-docker build -t smart-classroom-inference .
+```powershell
+Set-Location frontend
+npm.cmd install
+Set-Location ..
 ```
 
-Run it:
+The trained model is already located at:
 
-```bash
-docker run --rm -p 8000:8000 smart-classroom-inference
+```text
+backend\models\classroom_person.onnx
 ```
 
-Camera-device access from Docker depends on the host operating system. An
-approved uploaded video is the most portable demonstration input.
+## Run the system
 
----
+The backend and dashboard must run in two separate PowerShell terminals.
 
-## 🔌 API Handoff
+### One-click Windows start
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/health` | Reports model and camera readiness |
-| `GET` | `/status` | Returns count, detections, occupancy, and AC recommendation |
-| `GET` | `/snapshot.jpg` | Returns the latest frame with detection boxes |
-| `POST` | `/video` | Uploads a classroom video for local inference |
+Double-click:
 
-Important response fields include:
+```text
+scripts\start-project.bat
+```
 
-- `person_count`
-- `detections`
-- `confidence`
-- `inference_ms`
-- `occupancy`
-- `ac_state`
-- `temperature`
-- `control_pending`
-- `control_reason`
+The launcher starts the backend and frontend in separate command windows and
+opens `http://localhost:5173` automatically. Close both command windows to stop
+the project.
 
----
+### Terminal 1 — model backend
 
-## 🔧 Runtime Configuration
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8010
+```
 
-The inference service supports these environment variables:
+Wait until the terminal displays:
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `MODEL_PATH` | `models/classroom_person.onnx` | ONNX model location |
-| `CAMERA_SOURCE` | `0` | Camera, video file, or stream |
-| `CONFIDENCE_THRESHOLD` | `0.25` | Minimum detection confidence |
-| `IOU_THRESHOLD` | `0.45` | Non-maximum suppression threshold |
-| `FRAME_INTERVAL` | `0.02` | Delay between processed frames |
-| `OCCUPANCY_CONFIRM_SECONDS` | `15` | Confirmation before occupancy increases |
-| `OCCUPANCY_RELEASE_SECONDS` | `60` | Confirmation before occupancy decreases |
-| `AC_MIN_ON_SECONDS` | `300` | Minimum simulated AC ON duration |
-| `AC_MIN_OFF_SECONDS` | `30` | Minimum simulated AC OFF duration |
-| `TEMP_CHANGE_COOLDOWN_SECONDS` | `600` | Minimum interval between temperature changes |
+```text
+Application startup complete
+Uvicorn running on http://127.0.0.1:8010
+```
 
----
+### Terminal 2 — dashboard
 
-## ✅ Validation Checklist
+```powershell
+Set-Location frontend
+npm.cmd run dev -- --host 127.0.0.1
+```
 
-Before handing a new model to the application team:
+Open the dashboard:
 
-1. Confirm the ONNX file loads with OpenCV DNN.
-2. Verify the input shape and normalization have not changed.
-3. Test an approved classroom video with no people, few people, and many people.
-4. Record detection quality and important limitations.
-5. Check the `/health`, `/status`, and `/snapshot.jpg` endpoints.
-6. Update the model contract if output tensor structure changes.
-7. Confirm that no datasets, recordings, credentials, or caches are staged.
+```text
+http://localhost:5173
+```
 
----
+You can confirm the backend is available at:
 
-## 🔐 Data and Privacy Policy
+```text
+http://localhost:8010/health
+```
 
-- Do not commit raw classroom videos or private datasets.
-- Use only recordings collected with appropriate permission.
-- Prefer anonymized or non-identifiable validation samples.
-- Never commit `.env` files, credentials, virtual environments, or training
-  service tokens.
-- Keep large experiment outputs and training caches outside the repository.
-- The inference package processes frames locally and does not intentionally
-  store detected faces.
+## Test with a classroom video
 
----
+1. Open `http://localhost:5173`.
+2. Scroll to **Live Inference**.
+3. Select **Upload classroom video**.
+4. Choose an MP4, AVI, MOV, MKV, WebM, or M4V file.
+5. Wait for the upload to finish.
+6. The video, person boxes, count, occupancy, confidence, and AC state will
+   update automatically.
 
-## 🤝 Team Handoff
+Uploaded videos are stored locally in:
 
-When the model changes, provide the App Developers with:
+```text
+backend\uploads
+```
 
-- the exported `.onnx` file;
-- input shape and preprocessing requirements;
-- output tensor format;
-- class names;
-- recommended confidence and IoU thresholds;
-- evaluation results and known limitations;
-- a version or commit identifier for the model artifact.
+No video is sent to a cloud service.
 
-Changes should be reviewed through a pull request into `Data-Scientists`. The
-completed team branches can later be integrated into `main` by the repository
-owner.
+## Use a webcam or camera stream
 
----
+The default camera source is webcam `0`. Set another source before starting the
+backend when required:
 
-## 🔮 Future Data Science Improvements
+```powershell
+$env:CAMERA_SOURCE = "1"
+```
 
-- Add formal evaluation metrics and reports
-- Add training and ONNX-export scripts
-- Add reproducible model configuration files
-- Add dataset versioning without committing private data
-- Optimize the model for Raspberry Pi and NVIDIA Jetson
-- Add multi-person tracking with ByteTrack or DeepSORT
-- Evaluate privacy-preserving face anonymization
-- Add automated model-regression checks
+For an RTSP camera:
 
----
+```powershell
+$env:CAMERA_SOURCE = "rtsp://username:password@camera-address/stream"
+```
 
-## 📄 Use
+Then start the backend using the Terminal 1 command.
 
-This project is intended for educational and research purposes.
+## Production build
+
+Build the optimized frontend:
+
+```powershell
+Set-Location frontend
+npm.cmd run build
+```
+
+The production files are created in `dist`.
+
+Preview the production build locally:
+
+```powershell
+npm.cmd run preview -- --host 127.0.0.1 --port 5173
+```
+
+The FastAPI backend must still be running in the other terminal.
+
+## Stop the system
+
+Press `Ctrl+C` once in the backend terminal and once in the dashboard terminal.
+
+## Configuration
+
+Frontend configuration is stored in `frontend\.env`:
+
+```env
+VITE_USE_API=true
+VITE_API_BASE_URL=http://localhost:8010
+VITE_API_POLL_MS=200
+```
+
+Backend configuration examples are in `backend\.env.example`. Important
+options include:
+
+- `CAMERA_SOURCE`
+- `CONFIDENCE_THRESHOLD`
+- `FRAME_INTERVAL`
+- `OCCUPANCY_CONFIRM_SECONDS`
+- `OCCUPANCY_RELEASE_SECONDS`
+- `AC_MIN_ON_SECONDS`
+- `AC_MIN_OFF_SECONDS`
+- `TEMP_CHANGE_COOLDOWN_SECONDS`
+
+## API endpoints
+
+- `GET /status` — person count, occupancy and protected AC command
+- `GET /health` — backend, model and camera health
+- `GET /snapshot.jpg` — latest frame with person bounding boxes
+- `POST /video` — upload a classroom video
+
+## Common problems
+
+### Dashboard says backend unavailable
+
+Make sure Terminal 1 is still running and open:
+
+```text
+http://localhost:8010/health
+```
+
+### Webcam is inactive
+
+The webcam may be unavailable or used by another application. Close other
+camera applications, or upload a video through the dashboard.
+
+### PowerShell blocks a `.ps1` script
+
+Use the full Python and npm commands shown in this guide. They do not require
+running the helper scripts.
+
+### Port already in use
+
+Stop the old backend/dashboard terminal with `Ctrl+C`, then run the commands
+again.
